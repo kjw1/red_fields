@@ -2,7 +2,7 @@
 -include("include/rf_terrain.hrl").
 -behavior(gen_server).
 -export([start_link/1]).
--export([init/1, handle_call/3]).
+-export([init/1, handle_call/3, handle_cast/2]).
 -export([terrain_at/3]).
 -export([fake_def/1]).
 
@@ -28,20 +28,20 @@ init(SegmentDef) ->
 
 handle_call(state, _From, State) ->
   {reply, State, State};
-handle_call({get_terrain, X, Y}, _From, MapSegment) ->
-  create_get_terrain_result(get_terrain_at(X, Y, MapSegment), MapSegment).
+handle_call({get_terrain, X, Y}, From, MapSegment) ->
+  create_get_terrain_result(get_terrain_at(X, Y, MapSegment, From), MapSegment).
 
 handle_cast({get_terrain, X, Y, From}, MapSegment) ->
-  handle_passed_terrain_at(get_terrain_at(X, Y, MapSegment), MapSegment).
+  handle_passed_terrain_at(get_terrain_at(X, Y, MapSegment, From), From, MapSegment).
 
 terrain_at(Segment, X, Y) ->
   gen_server:call(Segment, {get_terrain, X, Y}).
 
-handle_passed_terrain_at(passed, MapSegment) ->
-  {no_reply, MapSegment};
-handle_passed_terrain_at(Terrain, MapSegment) ->
+handle_passed_terrain_at(passed, _From, MapSegment) ->
+  {noreply, MapSegment};
+handle_passed_terrain_at(Terrain, From, MapSegment) ->
   gen_server:reply(From, Terrain),
-  {no_reply, MapSegment}.
+  {noreply, MapSegment}.
 
 %Passes terrain at call to another process
 terrain_at_pass(Segment, X, Y, From) ->
@@ -56,18 +56,18 @@ create_get_terrain_result(Result, MapSegment) ->
 %will either return passed or the terrain at that location
 get_terrain_at(X, Y, #rf_map_segment{terrain=Terrain}= Segment, From) when is_record(Terrain, rf_map_tree)->
   get_terrain_from_children(X, Y, From, Segment);
-get_terrain_at(X, Y, #rf_map_segment{x=StartX, y=StartY, terrain=Terrain}, From) ->
+get_terrain_at(X, Y, #rf_map_segment{x=StartX, y=StartY, terrain=Terrain}, _From) ->
   lists:nth(X- StartX, lists:nth(Y-StartY, Terrain)).
 
 %Always returns 'passed'
 get_terrain_from_children(X, Y, From, #rf_map_segment{x=StartX, y=StartY, width=Width, height=Height, terrain = Terrain}) when X - StartX < Width div 2, Y - StartY < Height div 2 ->
-  terrain_at_pass(Terrain#rf_map_tree.nw, X, Y);
+  terrain_at_pass(Terrain#rf_map_tree.nw, X, Y, From);
 get_terrain_from_children(X, Y, From, #rf_map_segment{x=StartX, y=StartY, width=Width, height=Height, terrain = Terrain}) when X - StartX >= Width div 2, Y - StartY < Height div 2 ->
-  terrain_at_pass(Terrain#rf_map_tree.ne, X, Y);
+  terrain_at_pass(Terrain#rf_map_tree.ne, X, Y, From);
 get_terrain_from_children(X, Y, From, #rf_map_segment{x=StartX, y=StartY, width=Width, height=Height, terrain = Terrain}) when X - StartX < Width div 2, Y - StartY >= Height div 2 ->
-  terrain_at_pass(Terrain#rf_map_tree.sw, X, Y);
+  terrain_at_pass(Terrain#rf_map_tree.sw, X, Y, From);
 get_terrain_from_children(X, Y, From, #rf_map_segment{x=StartX, y=StartY, width=Width, height=Height, terrain = Terrain}) when X - StartX >= Width div 2, Y - StartY >= Height div 2 ->
-  terrain_at_pass(Terrain#rf_map_tree.se, X, Y).
+  terrain_at_pass(Terrain#rf_map_tree.se, X, Y, From).
   
 
 split_segment(#rf_map_segment{x=X, y=Y, width=Width, height=Height, terrain=Terrain}) ->
