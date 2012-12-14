@@ -1,7 +1,7 @@
 
 -module(rf_actor).
 -behavior(gen_server).
--export([init/1, start_link/0]).
+-export([init/1, start_link/1]).
 
 start_link(Clock) ->
   gen_server:start_link(?MODULE, [Clock], []).

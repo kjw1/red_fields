@@ -3,16 +3,17 @@
 -export([new_game/0, simulate_response_message/2]).
 
 new_game() ->
-  #rf_game{actors=dict:new(), clock = 0}.
+  #rf_game{waiting_actors=dict:new(), clock = 0}.
 
 setup_map_segments(MapDefinition) ->
+  rf_map_segment:start_link(MapDefinition).
   
 
 simulate_actors([], Game) ->
   Game;
 simulate_actors([{_Key, Actor} | Actors] , Game) ->
   rf_actor:simulate(Actor, Game),
-  simulate_responses(Game).
+  simulate_actors(Actors, Game).
 
 simulate_response([], Game) ->
   Game;

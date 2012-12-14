@@ -7,6 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { red_fields, []}},
+  {mod, { red_fields_app, []}},
   {env, []}
  ]}.

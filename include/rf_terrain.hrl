@@ -1,0 +1,3 @@
+-record(rf_terrain, {elevation=0, type=none}).
+-record(rf_map_segment, {x=0, y=0, width=1, height=1, terrain=[]}).
+-record(rf_map_tree, {nw, ne, sw, se}).
