@@ -1,0 +1,1 @@
+-record(rf_simulation, {actors =[], x, y, width, height}).

@@ -11,6 +11,8 @@ fake_def(Size) ->
   Terrain = lists:map(fun (Y) -> lists:map(fun(X) -> #rf_terrain{type={X, Y}} end, lists:seq(1,Size)) end, SeedList),
   #rf_map_segment{x=0,y=0, width=Size, height=Size, terrain=Terrain}.
 
+% This might be better done as a DHT...
+
 start_link(SegmentDef) ->
   gen_server:start_link(?MODULE, SegmentDef, []).
 
