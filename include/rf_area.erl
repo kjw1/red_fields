@@ -1,1 +1,0 @@
--record(rf_area, {x,y,width,height}).
