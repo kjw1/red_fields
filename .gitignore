@@ -1,3 +1,5 @@
 ebin
+*.beam
 *.swp
 rel/red_fields
+logs
