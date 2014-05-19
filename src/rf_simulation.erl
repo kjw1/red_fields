@@ -44,7 +44,9 @@ generate_context(_Actor, _Self) ->
   {}.
 
 handle_cast({simulate_time_step, OriginPid, Ref}, #rf_simulation{actors=Actors}=Self) ->
-  Actions = lists:foldl(fun(Actor, Actions) -> simulate_actor(Actor, Self) ++ Actions end, Actors, []),
+  Actions = lists:foldl(fun(Actor, Actions) ->
+                          simulate_actor(Actor, Self) ++ Actions
+                        end, Actors, []),
   UpdatedSelf = process_actions(Actions, Self),
   OriginPid ! { finished_sim, Ref },
   {noreply, UpdatedSelf}.
