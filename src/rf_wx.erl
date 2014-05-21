@@ -31,6 +31,7 @@
 
 -record(state, 
   {
+    controller,
     parent,
     config,
     canvas,
@@ -47,6 +48,7 @@ init(Config) ->
 do_init(Config) ->
     io:format("Starting canvas~n"),
     Parent = proplists:get_value(parent, Config),  
+    Controller = proplists:get_value(controller, Config),  
     Panel = wxPanel:new(Parent, []),
 
     %% Setup sizers
@@ -54,17 +56,13 @@ do_init(Config) ->
     Sizer = wxStaticBoxSizer:new(?wxVERTICAL, Panel, 
          [{label, "Various shapes"}]),
 
-    Button = wxButton:new(Panel, ?wxID_ANY, [{label, "Redraw"}]),
-
     Canvas = wxPanel:new(Panel, [{style, ?wxFULL_REPAINT_ON_RESIZE}]),
 
     wxPanel:connect(Canvas, paint, [callback]),
     wxPanel:connect(Canvas, size),
     wxPanel:connect(Canvas, left_down),
-    wxPanel:connect(Button, command_button_clicked),
 
     %% Add to sizers
-    wxSizer:add(Sizer, Button, [{border, 5}, {flag, ?wxALL}]),
     wxSizer:addSpacer(Sizer, 5),
     wxSizer:add(Sizer, Canvas, [{flag, ?wxEXPAND},
         {proportion, 1}]),
@@ -79,6 +77,7 @@ do_init(Config) ->
     Bitmap = wxBitmap:new(erlang:max(W,30),erlang:max(30,H)),
     
     {Panel, #state{parent=Panel, config=Config,
+       controller = Controller,
        canvas = Canvas, bitmap = Bitmap}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -92,8 +91,9 @@ handle_sync_event(#wx{event = #wxPaint{}}, _wxObj,
     ok.
 
 %% Async Events are handled in handle_event as in handle_info
-handle_event(#wx{event = #wxMouse{type = left_down, x=MouseX, y=MouseY}}, State) ->
+handle_event(#wx{event = #wxMouse{type = left_down, x=MouseX, y=MouseY}}, #state{controller=Controller}=State) ->
     io:format("Got mouse at ~p ~p~n", [MouseX, MouseY]),
+    Controller ! {click, MouseX, MouseY},
     {noreply, State};
 handle_event(#wx{event = #wxCommand{type = command_button_clicked}},
        State = #state{}) ->
@@ -164,7 +164,4 @@ redraw(DC, Bitmap) ->
         {wxBitmap:getWidth(Bitmap), wxBitmap:getHeight(Bitmap)},
         MemoryDC, {0,0}),
     wxMemoryDC:destroy(MemoryDC).
-
-%get_pos(W,H) ->
-    %{random:uniform(W), random:uniform(H)}.
 
