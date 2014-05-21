@@ -13,6 +13,7 @@ start(_StartType, _StartArgs) ->
   rf_config:init(),
   Map = rf_config:read_config(),
   io:format("Map: ~p~n", [Map]),
+  rf_map:init(Map),
   red_fields_sup:start_link().
 
 stop(_State) ->
