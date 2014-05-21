@@ -33,11 +33,11 @@ configure_map(Config) ->
                 end, Grid, Shapes).
 
 add_blob({Type, BlobX, BlobY, BlobWidth, BlobHeight}, Grid) ->
-  {Head, Replace, Tail} = get_middle(BlobX, BlobWidth, Grid),
-  NewMiddle = lists:map(fun(Column) ->
-          {ColHead, ColReplace, ColTail} = get_middle(BlobY, BlobHeight, Column),
-          NewColMiddle = lists:map(fun(_) -> Type end, ColReplace),
-          lists:append([ColHead, NewColMiddle, ColTail])
+  {Head, Replace, Tail} = get_middle(BlobY, BlobHeight, Grid),
+  NewMiddle = lists:map(fun(Row) ->
+          {RowHead, RowReplace, RowTail} = get_middle(BlobX, BlobWidth, Row),
+          NewRowMiddle = lists:map(fun(_) -> Type end, RowReplace),
+          lists:append([RowHead, NewRowMiddle, RowTail])
       end, Replace),
   lists:append([Head, NewMiddle, Tail]).
 
@@ -50,5 +50,5 @@ generate_grid(Width, Height, Filler) ->
   lists:map(fun(_) ->
         lists:map(fun(_) ->
               Filler
-          end, lists:seq(1, Height))
-    end, lists:seq(1, Width)).
+          end, lists:seq(1, Width))
+    end, lists:seq(1, Height)).
