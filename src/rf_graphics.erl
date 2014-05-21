@@ -27,7 +27,7 @@ handle_info(redraw, #state{wx=Wx, box_pos=Box, delta=Delta}=State) ->
   wx_object:get_pid(Wx) ! {redraw, Box},
   erlang:send_after(50, self(), redraw),
   NewPos = add_delta(Box, vector_to_speed(Delta, 3)),
-  io:format("New Position: ~p~n", [NewPos]),
+  %io:format("New Position: ~p~n", [NewPos]),
   {noreply, State#state{box_pos=NewPos}}.
 
 add_delta({X, Y}, {DX, DY}) ->
