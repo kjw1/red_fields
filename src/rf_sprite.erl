@@ -1,40 +1,50 @@
 -module(rf_sprite).
 
--record(sprite_frame, {x, y, w, h}).
 -record(sprite, {image, frames}).
--record(sprite_data, {images, sprites}).
+-record(sprite_data, {sprites}).
 
--export([load_sprites/0]).
+-export([load_sprites/0, get_frame/3]).
 
 load_images() ->
   ImagesToLoad = application:get_env(red_fields, images, []),
+  io:format("Loading images: ~p~n", [ImagesToLoad]),
   load_images(ImagesToLoad, dict:new()).
 
 load_images([], Images) ->
   Images;
 load_images([{ImageId, ImageLocation} | ImageList], Images) ->
   Image = wxImage:new(full_file_path(ImageLocation)),
-  dict:store(ImageId, Image, Images),
-  load_images(ImageList, Images).
+  NewImages = dict:store(ImageId, Image, Images),
+  load_images(ImageList, NewImages).
 
-load_sprites([], Sprites) ->
+load_sprites([], _Images, Sprites) ->
   Sprites;
-load_sprites([{SpriteId, SpriteImage, Frames} | SpritesToLoad], Sprites) ->
-  ParsedFrames = parse_frames(Frames, []),
-  NewSprites = dict:store(SpriteId, #sprite{image = SpriteImage, frames=ParsedFrames}, Sprites),
-  load_sprites(SpritesToLoad, NewSprites).
+load_sprites([{SpriteId, SpriteImage, Frames} | SpritesToLoad], Images, Sprites) ->
+  io:format("loading sprite ~p, image:~p~n", [SpriteId, SpriteImage]),
+  BitmapFrames = create_frame_bitmaps(SpriteImage, Frames, Images),
+  NewSprites = dict:store(SpriteId, #sprite{image = SpriteImage, frames=BitmapFrames}, Sprites),
+  load_sprites(SpritesToLoad, Images, NewSprites).
+
+create_frame_bitmaps(ImageId, Frames, Images) ->
+  lists:map(fun(Frame) -> create_bitmap(ImageId, Frame, Images) end, Frames).
 
 load_sprites() ->
   Images = load_images(),
   SpritesToLoad = application:get_env(red_fields, sprites, []),
-  Sprites = load_sprites(SpritesToLoad, dict:new()),
-  #sprite_data{images=Images, sprites=Sprites}.
-
-parse_frames([], ParsedFrames) ->
-  lists:reverse(ParsedFrames);
-parse_frames([{X, Y, Width, Height} | Frames], ParsedFrames) ->
-  NextFrames = [#sprite_frame{x=X, y=Y, w=Width, h=Height} | ParsedFrames],
-  parse_frames(Frames, NextFrames).
+  Sprites = load_sprites(SpritesToLoad, Images, dict:new()),
+  #sprite_data{sprites=Sprites}.
 
 full_file_path(Path) ->
   filename:join(code:priv_dir(red_fields), Path).
+
+create_bitmap(ImageId, Frame, Images) ->
+  Image = dict:fetch(ImageId, Images),
+  SubImage = wxImage:getSubImage(Image, Frame),
+  Bitmap = wxBitmap:new(SubImage),
+  wxImage:destroy(SubImage),
+  Bitmap.
+
+get_frame(SpriteId, FrameNum, SpriteData) ->
+  Sprite = dict:fetch(SpriteId, SpriteData#sprite_data.sprites),
+  lists:nth(FrameNum, Sprite#sprite.frames).
+

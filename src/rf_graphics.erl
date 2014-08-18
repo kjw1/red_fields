@@ -6,7 +6,7 @@
 -export([start_link/0]).
 -export([init/1, handle_info/2, terminate/2]).
 
--record(state, { frame, wx, box_pos={30, 30}, delta={0, 0}, sprites} ).
+-record(state, { frame, wx, box_pos={30, 30}, delta={0, 0}} ).
 
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -16,8 +16,7 @@ init([]) ->
   wxFrame:show(Frame),
   Wx = rf_wx:start([{parent, Frame}, {controller, self()}]),
   erlang:send_after(500, self(), redraw),
-  SpriteData = rf_sprite:load_sprites(),
-  {ok, #state{frame=Frame, wx=Wx, sprites=SpriteData}}.
+  {ok, #state{frame=Frame, wx=Wx}}.
 
 
 handle_info({click, X, Y}, #state{box_pos = {PX, PY}} = State) ->

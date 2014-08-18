@@ -35,6 +35,7 @@
     parent,
     config,
     canvas,
+    sprites,
     bitmap
   }).
 
@@ -58,6 +59,8 @@ do_init(Config) ->
 
     Canvas = wxPanel:new(Panel, [{style, ?wxFULL_REPAINT_ON_RESIZE}]),
 
+    SpriteData = rf_sprite:load_sprites(),
+
     wxPanel:connect(Canvas, paint, [callback]),
     wxPanel:connect(Canvas, size),
     wxPanel:connect(Canvas, left_down),
@@ -77,7 +80,7 @@ do_init(Config) ->
     Bitmap = wxBitmap:new(erlang:max(W,30),erlang:max(30,H)),
     
     {Panel, #state{parent=Panel, config=Config,
-       controller = Controller,
+       controller = Controller, sprites= SpriteData,
        canvas = Canvas, bitmap = Bitmap}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,8 +112,8 @@ handle_event(Ev = #wx{}, State = #state{}) ->
     {noreply, State}.
 
 %% Callbacks handled as normal gen_server callbacks
-handle_info({redraw, Pos}, #state{canvas=Canvas, bitmap=Bitmap}=State) ->
-    draw(Canvas, Bitmap, draw_box_fun(Pos)),
+handle_info({redraw, Pos}, #state{canvas=Canvas, bitmap=Bitmap, sprites=SpriteData}=State) ->
+    draw(Canvas, Bitmap, draw_sprite(grass, Pos, SpriteData)),
     wxWindow:refresh(Canvas),
     {noreply, State};
 handle_info(Msg, State) ->
@@ -137,6 +140,13 @@ terminate(_Reason, _) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Local functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+draw_sprite(Sprite, Pos, SpriteData) ->
+  fun(DC) ->
+    wxDC:clear(DC),
+    Bitmap = rf_sprite:get_frame(Sprite, 1, SpriteData),
+    wxDC:drawBitmap(DC, Bitmap, Pos)
+  end.
 
 draw_box_fun(Pos) ->
   fun(DC) ->
