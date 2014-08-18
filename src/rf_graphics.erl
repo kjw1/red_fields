@@ -24,7 +24,9 @@ handle_info({click, X, Y}, #state{box_pos = {PX, PY}} = State) ->
   io:format("Got delta: ~p~n", [NewDelta]),
   {noreply, State#state{delta = NewDelta}};
 handle_info(redraw, #state{wx=Wx, box_pos=Box, delta=Delta}=State) ->
-  wx_object:get_pid(Wx) ! {redraw, Box},
+  TerrainDraws = create_terrain_draws(),
+  %io:format("Drawing: ~p~n", [TerrainDraws]),
+  wx_object:get_pid(Wx) ! {redraw, TerrainDraws},
   erlang:send_after(20, self(), redraw),
   NewPos = add_delta(Box, vector_to_speed(Delta, 3)),
   %io:format("New Position: ~p~n", [NewPos]),
@@ -42,6 +44,25 @@ vector_to_speed({UnitX, UnitY}, Speed) ->
 
 terminate(_Reason, _State) ->
   ok.
+
+create_terrain_draws() ->
+  {Width, Height} = rf_map:get_meta(size),
+  %io:format("Got map size: ~p ~p~n", [Width, Height]),
+  Map = rf_map:get_terrain(1, 1, Width, Height),
+  create_map_draws(Map).
+
+create_map_draws(Map) ->
+  {DrawCommands, _RowNum} = lists:foldl(fun(Row, {Rows, RowNum}) -> 
+        { [ create_row_draws(Row, RowNum) | Rows], RowNum + 1}
+      end, {[], 0}, Map),
+  lists:flatten(DrawCommands).
+
+create_row_draws(Row, RowNum) ->
+  {RowCommands, _ColNum} = lists:foldl(fun(_TerrainType, {Squares, ColNum}) ->
+        Square = {draw_sprite, grass, 1, ColNum * 16, RowNum * 16},
+        { [Square | Squares], ColNum + 1}
+      end, {[], 0}, Row),
+  RowCommands.
 
 
 

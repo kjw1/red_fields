@@ -112,8 +112,8 @@ handle_event(Ev = #wx{}, State = #state{}) ->
     {noreply, State}.
 
 %% Callbacks handled as normal gen_server callbacks
-handle_info({redraw, Pos}, #state{canvas=Canvas, bitmap=Bitmap, sprites=SpriteData}=State) ->
-    draw(Canvas, Bitmap, draw_sprite(grass, Pos, SpriteData)),
+handle_info({redraw, Commands}, #state{canvas=Canvas, bitmap=Bitmap, sprites=SpriteData}=State) ->
+    draw(Canvas, Bitmap, draw_sprites(Commands, SpriteData)),
     wxWindow:refresh(Canvas),
     {noreply, State};
 handle_info(Msg, State) ->
@@ -141,20 +141,15 @@ terminate(_Reason, _) ->
 %% Local functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-draw_sprite(Sprite, Pos, SpriteData) ->
-  fun(DC) ->
-    wxDC:clear(DC),
-    Bitmap = rf_sprite:get_frame(Sprite, 1, SpriteData),
-    wxDC:drawBitmap(DC, Bitmap, Pos)
+draw_sprites(CommandList, SpriteData) ->
+    fun(DC) ->
+        wxDC:clear(DC),
+        lists:foreach(fun({draw_sprite, SpriteId, FrameNum, X, Y}) ->
+            Bitmap = rf_sprite:get_frame(SpriteId, FrameNum, SpriteData),
+            wxDC:drawBitmap(DC, Bitmap, {X, Y})
+          end, CommandList)
   end.
 
-draw_box_fun(Pos) ->
-  fun(DC) ->
-    wxDC:clear(DC),
-    wxDC:setBrush(DC, ?wxBLUE_BRUSH),
-    wxDC:drawCircle(DC, Pos, 15)
-  end.
-  
 
 %% Buffered makes it all appear on the screen at the same time
 draw(Canvas, Bitmap, Fun) ->

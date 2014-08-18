@@ -2,9 +2,10 @@
 
 -include("rf_terrain.hrl").
 
--export([init/1, get_terrain/4]).
+-export([init/1, get_terrain/4, game_map_size/1, get_meta/1]).
 
 -record(map_chunk, {pos, terrain}).
+-record(map_meta, {name, value}).
 
 -define(CHUNK_SIZE, 5).
 
@@ -13,6 +14,11 @@
 -endif.
 
 init(MapData) ->
+  ets:new(map_meta, [{read_concurrency, true},
+                        named_table,
+                        public,
+                        set,
+                        {keypos, #map_meta.name}]),
   ets:new(map_chunks, [{read_concurrency, true},
                         named_table,
                         public,
@@ -21,10 +27,21 @@ init(MapData) ->
   %io:format("Map data: ~p~n", [MapData]),
   store_data(MapData).
 
+get_meta(Key) ->
+  [#map_meta{name=Key, value=Value}] = ets:lookup(map_meta, Key),
+  Value.
+
+game_map_size([ARow | _]=MapData) ->
+  Width = length(ARow),
+  Height = length(MapData),
+  io:format("Rows ~p Columns ~p~n", [Width, Height]),
+  {Width, Height}.
+
 store_data([ARow | _]=MapData) ->
   RowStarts = lists:seq(1, length(ARow), ?CHUNK_SIZE),
   ColumnStarts = lists:seq(1, length(MapData), ?CHUNK_SIZE),
-  io:format("Rows ~p Columns ~p~n", [RowStarts, ColumnStarts]),
+  {Width, Height} = game_map_size(MapData),
+  ets:insert(map_meta, #map_meta{name=size, value={Width, Height}}),
   Chunks = [ {Row, Column} || Row <- RowStarts, Column <- ColumnStarts],
   lists:foreach(fun(Chunk) -> store_chunk(Chunk, MapData) end, Chunks).
 
