@@ -3,3 +3,5 @@ ebin
 *.swp
 rel/red_fields
 logs
+.eunit
+*.jpg

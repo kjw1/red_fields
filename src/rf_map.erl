@@ -8,12 +8,17 @@
 
 -define(CHUNK_SIZE, 5).
 
+-ifdef(TEST).
+-compile(export_all).
+-endif.
+
 init(MapData) ->
   ets:new(map_chunks, [{read_concurrency, true},
                         named_table,
                         public,
                         set,
                         {keypos, #map_chunk.pos}]),
+  %io:format("Map data: ~p~n", [MapData]),
   store_data(MapData).
 
 store_data([ARow | _]=MapData) ->
@@ -29,24 +34,39 @@ store_chunk({Row, Column}=Chunk, Map) ->
   ets:insert(map_chunks, #map_chunk{pos={Row div ?CHUNK_SIZE, Column div ?CHUNK_SIZE }, terrain=ChunkData}).
 
 get_terrain(X, Y, Width, Height) ->
-  XStart      = X      div ?CHUNK_SIZE,
-  ChunkWidth  = Width  div ?CHUNK_SIZE,
-  YStart      = Y      div ?CHUNK_SIZE,
-  ChunkHeight = Height div ?CHUNK_SIZE,
-  RowStarts = lists:seq(XStart, XStart + ChunkWidth),
-  ColumnStarts = lists:seq(YStart, YStart + ChunkHeight),
-  Chunks = [ {Row, Column} || Row <- RowStarts, Column <- ColumnStarts],
-  io:format("Combining from chunks: ~p~n", [Chunks]),
-  lists:foldl(fun(Chunk, StitchedChunks) ->
-        combine_chunks(Chunk, StitchedChunks, X, Y, Width, Height)
-    end, {{XStart, YStart}, none}, Chunks).
+  XStart = (X - 1) div ?CHUNK_SIZE,
+  XEnd   = (X - 1 + Width - 1) div ?CHUNK_SIZE,
+  YStart = (Y - 1) div ?CHUNK_SIZE,
+  YEnd   = (Y - 1 + Height - 1)  div ?CHUNK_SIZE,
+  io:format("X: ~p Y: ~p XEnd: ~p YEnd: ~p~n", [XStart, YStart, XEnd, YEnd]),
+  RowStarts = lists:seq(XStart, XEnd),
+  ColumnStarts = lists:seq(YStart, YEnd),
+  lists:foldl(fun(YChunk, AllRows) ->
+    NewRows = lists:foldl(fun(XChunk, []) ->
+        io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
+        ChunkPiece = get_chunk_piece({XChunk, YChunk}, X, Y, Width, Height),
+        io:format("Got piece ~p~n", [ChunkPiece]),
+        ChunkPiece;
+      (XChunk, Columns) ->
+        io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
+        ChunkPiece = get_chunk_piece({XChunk, YChunk}, X, Y, Width, Height),
+        io:format("Got piece ~p~n", [ChunkPiece]),
+        [ lists:concat([OldColumns, NewColumns]) ||
+          {OldColumns, NewColumns} <- lists:zip(Columns, ChunkPiece)]
+    end, [], RowStarts),
+    lists:concat([AllRows, NewRows])
+  end, [], ColumnStarts).
+
     
-    
-combine_chunks(ChunkPos, StitchedChunks, X, Y, Width, Height) ->
-  {ChunkX, ChunkY, ChunkWidth, ChunkHeight} = get_overlap(ChunkPos, X, Y, Width, Height),
+get_chunk_piece(ChunkPos, X, Y, Width, Height) ->
+  {ChunkX, ChunkY, ChunkXEnd, ChunkYEnd} = get_overlap(ChunkPos, X, Y, Width, Height),
   [#map_chunk{terrain=MapChunk}] = ets:lookup(map_chunks, ChunkPos),
-  MapPiece = rf_grid:get_chunk(ChunkX, ChunkY, ChunkWidth, ChunkHeight, MapChunk), 
-  stitch_rows(ChunkPos, MapPiece, StitchedChunks).
+  io:format("x ~p y ~p w ~p h ~p~n", [ChunkX rem ?CHUNK_SIZE + 1,
+                    ChunkY rem ?CHUNK_SIZE + 1,
+                    ChunkXEnd - ChunkX+ 1, ChunkYEnd - ChunkY+ 1]),
+  rf_grid:get_chunk(ChunkX rem ?CHUNK_SIZE + 1,
+                    ChunkY rem ?CHUNK_SIZE + 1,
+                    ChunkXEnd - ChunkX+ 1, ChunkYEnd - ChunkY+ 1, MapChunk).
 
 get_overlap({ChunkPosX, ChunkPosY}, X, Y, Width, Height) ->
   ChunkX = ?CHUNK_SIZE * ChunkPosX + 1,
@@ -59,22 +79,4 @@ get_overlap({ChunkPosX, ChunkPosY}, X, Y, Width, Height) ->
             min(ChunkYMax, Y + Height -1)},
   io:format("Overlap: ~p~n", [Result]),
   Result.
-
-stitch_rows(Start, MapPiece, {Start, none}) ->
-  {Start, MapPiece};
-stitch_rows(ChunkPos, MapPiece, {Start, StitchedRows}) ->
-  StitchStart= get_stitch_start_row(ChunkPos, Start),
-  {Start, do_stitch_at(StitchStart, MapPiece, StitchedRows)}.
-
-get_stitch_start_row({XPos, _}, {XStart, _}) ->
-  XPos - XStart.
-
-do_stitch_at(StitchStart, MapPiece, StitchedRows) when StitchStart > length(StitchedRows) ->
-  lists:concat([StitchedRows, MapPiece]);
-do_stitch_at(StitchStart, MapPiece, StitchedRows) ->
-  {Head, Middle, Tail} = rf_grid:get_middle(StitchStart, length(MapPiece), StitchedRows),
-  ListPairs = lists:zip(Middle, MapPiece),
-  NewMiddle = lists:map(fun({RowBase, RowEnd}) -> lists:concat([RowBase, RowEnd]) end, ListPairs),
-  lists:concat([Head, NewMiddle, Tail]).
-
 
