@@ -1,3 +1,4 @@
+erl_crash.dump
 ebin
 *.beam
 *.swp
@@ -5,3 +6,4 @@ rel/red_fields
 logs
 .eunit
 *.jpg
+*.png
