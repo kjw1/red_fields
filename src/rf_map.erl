@@ -55,19 +55,19 @@ get_terrain(X, Y, Width, Height) ->
   XEnd   = (X - 1 + Width - 1) div ?CHUNK_SIZE,
   YStart = (Y - 1) div ?CHUNK_SIZE,
   YEnd   = (Y - 1 + Height - 1)  div ?CHUNK_SIZE,
-  io:format("X: ~p Y: ~p XEnd: ~p YEnd: ~p~n", [XStart, YStart, XEnd, YEnd]),
+  %io:format("X: ~p Y: ~p XEnd: ~p YEnd: ~p~n", [XStart, YStart, XEnd, YEnd]),
   RowStarts = lists:seq(XStart, XEnd),
   ColumnStarts = lists:seq(YStart, YEnd),
   lists:foldl(fun(YChunk, AllRows) ->
     NewRows = lists:foldl(fun(XChunk, []) ->
-        io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
+        %io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
         ChunkPiece = get_chunk_piece({XChunk, YChunk}, X, Y, Width, Height),
-        io:format("Got piece ~p~n", [ChunkPiece]),
+        %io:format("Got piece ~p~n", [ChunkPiece]),
         ChunkPiece;
       (XChunk, Columns) ->
-        io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
+        %io:format("Getting chunk ~p ~p~n", [XChunk, YChunk]),
         ChunkPiece = get_chunk_piece({XChunk, YChunk}, X, Y, Width, Height),
-        io:format("Got piece ~p~n", [ChunkPiece]),
+        %io:format("Got piece ~p~n", [ChunkPiece]),
         [ lists:concat([OldColumns, NewColumns]) ||
           {OldColumns, NewColumns} <- lists:zip(Columns, ChunkPiece)]
     end, [], RowStarts),
@@ -75,15 +75,15 @@ get_terrain(X, Y, Width, Height) ->
   end, [], ColumnStarts).
 
     
-get_chunk_piece(ChunkPos, X, Y, Width, Height) ->
+get_chunk_piece({ChunkPosX, ChunkPosY} = ChunkPos, X, Y, Width, Height) ->
   {ChunkX, ChunkY, ChunkXEnd, ChunkYEnd} = get_overlap(ChunkPos, X, Y, Width, Height),
   [#map_chunk{terrain=MapChunk}] = ets:lookup(map_chunks, ChunkPos),
-  io:format("x ~p y ~p w ~p h ~p~n", [ChunkX rem ?CHUNK_SIZE + 1,
-                    ChunkY rem ?CHUNK_SIZE + 1,
-                    ChunkXEnd - ChunkX+ 1, ChunkYEnd - ChunkY+ 1]),
-  rf_grid:get_chunk(ChunkX rem ?CHUNK_SIZE + 1,
-                    ChunkY rem ?CHUNK_SIZE + 1,
-                    ChunkXEnd - ChunkX+ 1, ChunkYEnd - ChunkY+ 1, MapChunk).
+  %io:format("x ~p y ~p w ~p h ~p~n", [ChunkX - ChunkPosX * ?CHUNK_SIZE,
+                    %ChunkY - ChunkPosY * ?CHUNK_SIZE,
+                    %ChunkXEnd - ChunkX + 1, ChunkYEnd - ChunkY+ 1]),
+  rf_grid:get_chunk(ChunkX - ChunkPosX * ?CHUNK_SIZE,
+                    ChunkY - ChunkPosY * ?CHUNK_SIZE,
+                    ChunkXEnd - ChunkX + 1, ChunkYEnd - ChunkY+ 1, MapChunk).
 
 get_overlap({ChunkPosX, ChunkPosY}, X, Y, Width, Height) ->
   ChunkX = ?CHUNK_SIZE * ChunkPosX + 1,
@@ -94,6 +94,6 @@ get_overlap({ChunkPosX, ChunkPosY}, X, Y, Width, Height) ->
             max(ChunkY, Y),
             min(ChunkXMax, X + Width -1),
             min(ChunkYMax, Y + Height -1)},
-  io:format("Overlap: ~p~n", [Result]),
+  %io:format("Overlap: ~p~n", [Result]),
   Result.
 

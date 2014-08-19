@@ -16,7 +16,9 @@ map_test_() ->
       [fun test_get_overlap/0,
        fun test_init/0,
        fun test_get_chunk_piece/0,
-       fun test_get_terrain/0
+       fun test_get_terrain/0,
+       fun test_get_right_border/0,
+       fun test_get_left_border/0
       ]
     end
   }.
@@ -34,12 +36,21 @@ test_get_terrain() ->
   Retreived = ?debugVal(rf_map:get_terrain(5, 1, 2, 1)),
   [[{5,1}, {6, 1}]] = Retreived.
 
+test_get_left_border() ->
+  Retreived = ?debugVal(rf_map:get_terrain(1, 1, 1, 1)),
+  [[{1,1}]] = Retreived.
+
+test_get_right_border() ->
+  Retreived = ?debugVal(rf_map:get_terrain(5, 1, 1, 1)),
+  [[{5,1}]] = Retreived.
+
 test_get_overlap() ->
   {4, 1, 5, 1} = ?debugVal(rf_map:get_overlap({0, 0}, 4, 1, 3, 1)),
+  {5, 1, 5, 1} = ?debugVal(rf_map:get_overlap({0, 0}, 5, 1, 3, 1)),
   {6, 1, 6, 1} = ?debugVal(rf_map:get_overlap({1, 0}, 4, 1, 3, 1)),
   {6, 1, 6, 1} = ?debugVal(rf_map:get_overlap({1, 0}, 6, 1, 1, 1)).
 
 test_get_chunk_piece() ->
   [[{6, 1}]] = rf_map:get_chunk_piece({1, 0}, 6, 1, 1, 1),
-  [[{6, 1}, {6,2}]] = rf_map:get_chunk_piece({1, 0}, 6, 1, 2, 1),
+  [[{6, 1}, {7,1}]] = rf_map:get_chunk_piece({1, 0}, 6, 1, 2, 1),
   [[{2, 2}]] = rf_map:get_chunk_piece({0, 0}, 2, 2, 1, 1).
