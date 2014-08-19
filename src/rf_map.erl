@@ -7,7 +7,7 @@
 -record(map_chunk, {pos, terrain}).
 -record(map_meta, {name, value}).
 
--define(CHUNK_SIZE, 5).
+-define(CHUNK_SIZE, 25).
 
 -ifdef(TEST).
 -compile(export_all).
