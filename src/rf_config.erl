@@ -5,6 +5,11 @@
 -export([init/0, read_config/0]).
 
 init() ->
+  ets:new(unit_types, [{read_concurrency, true},
+                          named_table,
+                          public,
+                          set,
+                          {keypos, #rf_unit_type.id}]),
   ets:new(terrain_types, [{read_concurrency, true},
                           named_table,
                           public,
@@ -15,7 +20,23 @@ read_config() ->
   PrivDir = code:priv_dir(red_fields),
   {ok, Config} = file:consult(filename:join(PrivDir, "game_data")),
   configure_terrain_types(Config),
-  configure_map(Config).
+  configure_unit_types(Config),
+  Units = configure_units(Config),
+  Map = configure_map(Config),
+  {Units, Map}.
+
+configure_units(Config) ->
+  Units = lists:keyfind(units, 1, Config),
+  case Units of
+    false -> [];
+    {units, UnitList} -> UnitList
+  end.
+
+configure_unit_types(Config) ->
+  {unit_types, Types} = lists:keyfind(unit_types, 1, Config),
+  lists:foreach(fun({TypeName}) ->
+        ets:insert(unit_types, #rf_unit_type{id=TypeName})
+    end, Types).
 
 configure_terrain_types(Config) ->
   Types = lists:filter(fun(Item) -> element(1, Item) =:= terrain_type end, Config),

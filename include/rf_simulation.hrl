@@ -1,1 +1,0 @@
--record(rf_simulation, {actors =[], area, parent, children, time=0}).

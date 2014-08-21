@@ -4,7 +4,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -16,16 +16,16 @@
 %% API functions
 %% ===================================================================
 
-start_link(MapSize) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [MapSize]).
+start_link(Units, MapSize) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [Units, MapSize]).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([MapSize]) ->
+init([Units, MapSize]) ->
     {ok, { {one_for_one, 5, 10}, [
-        {rf_simulation, {rf_simulation, start_link, [MapSize, none]},
+        {rf_simulation, {rf_simulation, start_link, [Units, MapSize, none]},
          permanent, 5000, worker, [rf_simulation]},
       ?CHILD(rf_graphics, worker)]} }.
 

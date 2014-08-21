@@ -9,3 +9,8 @@
   {mud, 40, 4, 2, 8},
   {mud, 8, 20, 10, 12}
  ] }.
+
+{unit_types, [{soldier}]}.
+
+% unit_id, x, y
+{units, [ {soldier, 10, 10 }]}.
